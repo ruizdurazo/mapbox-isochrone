@@ -1,11 +1,11 @@
 <!DOCTYPE html>
-<html lang="de">
+<html lang="en">
 
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta http-equiv="X-UA-Compatible" content="ie=edge">
-  <title>Suchkriterien</title>
+  <title>Mapbox Isochrone</title>
   <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no" />
   <!-- Import Mapbox GL JS -->
   <script src="https://api.tiles.mapbox.com/mapbox-gl-js/v1.4.0/mapbox-gl.js"></script>
@@ -351,33 +351,7 @@
       cursor: pointer;
     }
 
-
     /* -------------------- */
-
-    footer {
-      height: 40px;
-      background-color: #fff;
-      position: absolute;
-      bottom: 0;
-      width: 100%;
-      display: flex;
-    }
-
-    footer a {
-      display: inline-block;
-      align-content: center;
-      align-items: center;
-      text-decoration: none;
-      font-size: 12px;
-      color: #606060;
-      margin: auto;
-      padding: 0;
-      font-weight: 700;
-    }
-
-    footer a:hover {
-      color: #202020;
-    }
 
     .mapboxgl-ctrl-logo {
       display: none !important;
@@ -388,51 +362,47 @@
 <body>
   <div id="map"></div>
   <div class="menu">
-    <h1 id="title">Suchkriterien</h1>
-    <span id="plusMinus">–</span>
+    <h1 id="title">Menu
+      <span id="plusMinus">–</span>
+    </h1>
     <div id="searchCriteria">
       <hr>
       <div id="commute">
-        <button type="button" id="addCommute" class="button-add">+ Pendelstrecke</button>
+        <button type="button" id="addCommute" class="button-add">+ Commute</button>
       </div>
       <form id="params">
-        <h4 class="">1 - Ort (Arbeit, Schule, usw.):</h4>
+        <h4 class="">1 - Place (Work, School, etc.):</h4>
         <div id="search">
           <input type="text" id="geocoderText" class="search-text" value="">
-          <p class="search-hint">Suchen oder auf der Karte schieben.</p>
+          <p class="search-hint">Search or drag on map.</p>
           <ul id="searchResults"></ul>
         </div>
-        <h4 class="">2 - Verkehrsmittel:</h4>
+        <h4 class="">2 - Mode of transport:</h4>
         <div class="toggle-group">
           <label class="toggle-container" for="walking">
             <input type="radio" name="profile" value="walking" id="walking">
-            <div class="toggle" id="walkingToggle">Zu Fuss</div>
+            <div class="toggle" id="walkingToggle">Walking</div>
           </label>
           <label class="toggle-container" for="cycling">
             <input type="radio" name="profile" value="cycling" id="cycling">
-            <div class="toggle" id="cyclingToggle">Velo</div>
+            <div class="toggle" id="cyclingToggle">Bike</div>
           </label>
           <label class="toggle-container" for="driving">
             <input type="radio" name="profile" value="driving" id="driving">
-            <div class="toggle" id="drivingToggle">Auto</div>
+            <div class="toggle" id="drivingToggle">Car</div>
           </label>
         </div>
-        <h4 class="">3 - Maximaldauer:</h4>
+        <h4 class="">3 - Maximum duration:</h4>
         <input type="range" name="duration" id="duration" value=".4" min="0" max="1" step=".01" style="--duration:40%">
-        <output name="durationText" id="durationText"><b>15</b> Minuten</output>
-        <button type="button" id="deleteCommute" class="button-delete">Entfernen</button>
+        <output name="durationText" id="durationText"><b>15</b> Minutes</output>
+        <button type="button" id="deleteCommute" class="button-delete">Remove</button>
       </form>
     </div>
   </div>
 
-  <footer>
-    <a href="mailto:enrique.ruizdurazo@gmail.com?subject=Congrats&body=Hey Enrique%0D%0A%0D%0AThe demo looks good." target="_blank">Send me an email!</a>
-  </footer>
-
-
   <script>
     // Global vars
-    mapboxgl.accessToken = 'pk.eyJ1IjoicnVpemR1cmF6byIsImEiOiJjanFvcXNkMmowNnB6NDlxcDBwaGQ4ZjEzIn0.H-lM1PHESSmLxzfeJowlOg'
+    mapboxgl.accessToken = 'pk.eyJ1IjoicnVpemR1cmF6byIsImEiOiJjazF1dXQyZTMwZDNrM2JuMHhkdXkyOGpwIn0.ljpjN0dfkMMsDLPvUUfhBw'
     var originLng = 8.54
     var originLat = 47.375
     var urlBaseIsochrone = 'https://api.mapbox.com/isochrone/v1/mapbox/'
@@ -742,7 +712,7 @@
 
       function initCommute() {
         isMarker = true
-        commute.innerHTML = '<p>Pendelstrecke 1</p>'
+        commute.innerHTML = '<p>Commute 1</p>'
         params.style.maxHeight = '500px'
         marker.setLngLat([lon, lat]).addTo(map)
         document.getElementById(profile + 'Toggle').setAttribute('class', 'toggle active')
@@ -800,7 +770,7 @@
       let d = Math.floor(a * (Math.exp(b * value) - 1.0) + x)
       minutes = d // Non linear slider mapped value
       minutes_calc = Math.floor(minutes * multiple)
-      durationText.innerHTML = '<b>' + d + '</b>' + ' Minuten'
+      durationText.innerHTML = '<b>' + d + '</b>' + ' minutes'
     }
     // Run updateDuration when user changes input
     duration.addEventListener('input', function (event) {
