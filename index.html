@@ -144,6 +144,8 @@
       outline: none;
       border: none;
       padding: 0 0 4px 0;
+      -webkit-appearance: none;
+      border-radius: 0;
       border-bottom: 2px solid red;
     }
 
@@ -373,7 +375,7 @@
       <form id="params">
         <h4 class="">1 - Place (Work, School, etc.):</h4>
         <div id="search">
-          <input type="text" id="geocoderText" class="search-text" value="">
+          <input type="text" id="geocoderText" class="search-text" value="" autocomplete="off" autocorrect="off" spellcheck="false">
           <p class="search-hint">Search or drag on map.</p>
           <ul id="searchResults"></ul>
         </div>
@@ -744,7 +746,7 @@
         })
         // Prep for next initCommute
         setTimeout(function () {
-          commute.innerHTML = '<button type="button" id="addCommute" class="button-add">+ Pendelstrecke</button>'
+          commute.innerHTML = '<button type="button" id="addCommute" class="button-add">+ Commute</button>'
           addCommute = document.getElementById('addCommute')
           addCommute.addEventListener('click', initCommute)
         }, 300)
