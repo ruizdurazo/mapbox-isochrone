@@ -1,602 +1,269 @@
 <!DOCTYPE html>
 <html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <title>Mapbox Isochrone</title>
+    <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no" />
+    <!-- Import Mapbox GL JS -->
+    <script src="https://api.tiles.mapbox.com/mapbox-gl-js/v1.4.0/mapbox-gl.js"></script>
+    <link href="https://api.tiles.mapbox.com/mapbox-gl-js/v1.4.0/mapbox-gl.css" rel="stylesheet" />
+    <!-- Import jQuery -->
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+    <!-- Import Turf -->
+    <script src="https://cdn.jsdelivr.net/npm/@turf/turf@5/turf.min.js"></script>
+    <!-- Import D3 fetch -->
+    <script src="https://d3js.org/d3-fetch.v1.min.js"></script>
+    <!-- Styles -->
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
 
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta http-equiv="X-UA-Compatible" content="ie=edge">
-  <title>Mapbox Isochrone</title>
-  <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no" />
-  <!-- Import Mapbox GL JS -->
-  <script src="https://api.tiles.mapbox.com/mapbox-gl-js/v1.4.0/mapbox-gl.js"></script>
-  <link href="https://api.tiles.mapbox.com/mapbox-gl-js/v1.4.0/mapbox-gl.css" rel="stylesheet" />
-  <!-- Import jQuery -->
-  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
-  <!-- Import Turf -->
-  <script src="https://cdn.jsdelivr.net/npm/@turf/turf@5/turf.min.js"></script>
-  <!-- Import D3 fetch -->
-  <script src="https://d3js.org/d3-fetch.v1.min.js"></script>
-  <!-- Styles -->
-  <style>
-    :root {
-      --duration: 40%;
-    }
-
-    * {
-      font-family: Helvetica, Arial, sans-serif;
-      margin: 0;
-      padding: 0;
-    }
-
-    #map {
-      position: absolute;
-      top: 0;
-      bottom: 0;
-      width: 100%;
-    }
-
-    /* -------------------- */
-
-    .menu {
-      position: absolute;
-      background-color: white;
-      width: 300px;
-      left: 10px;
-      top: 10px;
-      border-radius: 8px;
-      box-shadow: 0 5px 10px rgba(128, 128, 128, .5);
-      overflow: hidden;
-    }
-
-    .menu h1 {
-      font-weight: 700;
-      font-size: 16px;
-      padding: 16px 20px;
-      letter-spacing: .01em;
-      color: #202020;
-      transition: all .2s;
-    }
-
-    .menu h1:hover {
-      cursor: pointer;
-      background-color: #fafafa;
-    }
-
-    .menu span {
-      position: absolute;
-      font-size: 16px;
-      right: 20px;
-      top: 16px;
-    }
-
-    .menu #searchCriteria {
-      display: block;
-      max-height: 600px;
-      overflow: scroll;
-      -ms-overflow-style: none;
-      overflow: -moz-scrollbars-none;
-      scrollbar-width: none;
-      transition: max-height .2s;
-    }
-
-    .menu #searchCriteria::-webkit-scrollbar {
-      width: 0 !important;
-      height: 0 !important;
-    }
-
-    .menu hr {
-      height: 1px;
-      background-color: #ddd;
-      margin: 0;
-      border: none;
-    }
-
-    /* Title for commute once created */
-    .menu #commute p {
-      padding: 16px 20px 16px 20px;
-      text-align: left;
-      font-size: 16px;
-      font-weight: 400;
-      color: #666666;
-    }
-
-    /* Add commute button */
-    .menu .button-add {
-      text-decoration: none;
-      background: none;
-      border: none;
-      width: 100%;
-      padding: 16px 20px;
-      text-align: left;
-      font-size: 16px;
-      font-weight: 400;
-      color: #808080;
-      transition: all .3s ease;
-    }
-
-    .menu .button-add:hover,
-    .menu .button-add:focus,
-    .menu .button-add:active {
-      outline: none;
-      color: #202020;
-      background-color: #fafafa;
-      border-radius: 8px;
-      cursor: pointer;
-    }
-
-    .menu h4 {
-      margin: 0 20px 4px 20px;
-      font-size: 16px;
-      letter-spacing: .01em;
-    }
-
-    /* Search */
-    .menu #search {
-      position: relative;
-    }
-
-    .menu .search-text {
-      font-size: 16px;
-      width: 260px;
-      color: #666666;
-      letter-spacing: .01em;
-      margin: 10px 20px 8px 20px;
-      outline: none;
-      border: none;
-      padding: 0 0 4px 0;
-      -webkit-appearance: none;
-      border-radius: 0;
-      border-bottom: 2px solid red;
-    }
-
-    .menu .search-text:hover,
-    .menu .search-text:active,
-    .menu .search-text:focus {
-      color: #202020;
-      outline: none;
-      border-bottom: 3px solid red;
-      margin: 10px 20px 7px 20px;
-    }
-
-    .menu .search-hint {
-      color: #aaaaaa;
-      font-size: 15px;
-      margin: 0 20px 28px 20px;
-    }
-
-    .menu #searchResults {
-      z-index: 100;
-      background-color: white;
-      list-style: none;
-      position: absolute;
-      top: 40px;
-      left: 20px;
-      overflow: hidden;
-      max-width: 260px;
-      max-height: 0;
-      transition: max-height .2s;
-    }
-
-    #searchResults li {
-      border-bottom: 1px solid #ccc;
-      font-size: 16px;
-      padding: 16px 4px;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-      overflow: hidden;
-      transition: all .2s;
-    }
-
-    #searchResults li:hover {
-      cursor: pointer;
-      background-color: #fafafa;
-    }
-
-    /* Range slider */
-    .menu input[type="range"] {
-      -webkit-appearance: none;
-      width: 145px;
-      margin: 12px 8px 12px 20px;
-      background-color: transparent;
-      outline: none;
-    }
-
-    .menu input[type=range]::-webkit-slider-thumb {
-      -webkit-appearance: none;
-      width: 16px;
-      height: 16px;
-      border-radius: 50%;
-      border: 4px solid red;
-      background: white;
-      cursor: pointer;
-      outline: none;
-    }
-
-    .menu input[type=range]::-webkit-slider-runnable-track {
-      -webkit-appearance: none;
-      color: transparent;
-      border-color: transparent;
-      background-color: transparent;
-      background-image: -webkit-gradient(linear, left top, right top, from(red), to(#eee));
-      background-image: linear-gradient(90deg, red var(--duration), #eee var(--duration));
-      background-position: center;
-      background-repeat: no-repeat;
-      background-size: 100% 4px;
-      cursor: pointer;
-    }
-
-    .menu input[type=range]::-moz-range-thumb {
-      width: 8px;
-      height: 8px;
-      border-radius: 50%;
-      border: 4px solid red;
-      background: white;
-      cursor: pointer;
-      outline: none;
-      -webkit-appearance: none;
-    }
-
-    .menu input[type=range]::-moz-range-thumb:focus,
-    .menu input[type=range]::-moz-range-thumb:hover,
-    .menu input[type=range]::-moz-range-thumb:active {
-      outline: none;
-    }
-
-    .menu input[type=range]::-moz-range-track {
-      -webkit-appearance: none;
-      color: transparent;
-      border-color: transparent;
-      background-color: transparent;
-      background-image: linear-gradient(90deg, red var(--duration), #eee var(--duration));
-      background-position: center;
-      background-repeat: no-repeat;
-      background-size: 100% 4px;
-      cursor: pointer;
-    }
-
-    .menu input[type=range]::-moz-range-track:focus,
-    .menu input[type=range]::-moz-range-track:hover,
-    .menu input[type=range]::-moz-range-track:active {
-      outline: none;
-    }
-
-    .menu input[type=range]::-ms-track {
-      -webkit-appearance: none;
-      color: transparent;
-      border-color: transparent;
-      background-color: transparent;
-      background-image: linear-gradient(90deg, red var(--duration), #eee var(--duration));
-      background-position: center;
-      background-repeat: no-repeat;
-      background-size: 100% 4px;
-      cursor: pointer;
-    }
-
-    .menu input[type=range]::-ms-track:focus,
-    .menu input[type=range]::-ms-track:hover,
-    .menu input[type=range]::-ms-track:active {
-      outline: none;
-    }
-
-    .menu #durationText {
-      color: #808080;
-      margin: 10px 8px;
-      position: absolute;
-    }
-
-    .menu b {
-      color: black;
-    }
-
-    .menu .toggle-group {
-      margin: 12px 20px 28px 20px;
-    }
-
-    .menu .toggle-container {
-      display: inline-block;
-    }
-
-    .menu input[type=radio] {
-      display: none;
-    }
-
-    .menu .toggle {
-      background-color: transparent;
-      color: #808080;
-      font-size: 14px;
-      border-radius: 16px;
-      padding: 8px 16px;
-      font-weight: 700;
-      letter-spacing: .02em;
-      margin: 0 4px 0 0;
-      transition: all .2s;
-    }
-
-    .menu .toggle:hover {
-      cursor: pointer;
-      color: red;
-      background-color: rgba(255, 0, 0, .1);
-    }
-
-    .menu .active {
-      background-color: red;
-      color: white;
-    }
-
-    .menu .active:hover {
-      background-color: red;
-      color: white;
-    }
-
-
-
-
-    #params {
-      transition: all .3s ease-in;
-      max-height: 0;
-      overflow: hidden;
-    }
-
-
-    .menu .button-delete {
-      display: block;
-      margin: 20px auto 24px auto;
-      font-size: 16px;
-      border: none;
-      color: red;
-      transition: all .3s ease;
-      background: none;
-    }
-
-    .menu .button-delete:hover {
-      color: rgba(255, 0, 0, .8);
-      cursor: pointer;
-    }
-
-    /* -------------------- */
-
-    .mapboxgl-ctrl-logo {
-      display: none !important;
-    }
-  </style>
-</head>
-
-<body>
-  <div id="map"></div>
-  <div class="menu">
-    <h1 id="title">Menu
-      <span id="plusMinus">–</span>
-    </h1>
-    <div id="searchCriteria">
-      <hr>
-      <div id="commute">
-        <button type="button" id="addCommute" class="button-add">+ Commute</button>
+  <body>
+    <div id="map"></div>
+    <div class="menu">
+      <h1 id="title">
+        Menu
+        <span id="plusMinus">–</span>
+      </h1>
+      <div id="searchCriteria">
+        <hr />
+        <div id="commute">
+          <button type="button" id="addCommute" class="button-add">+ Commute</button>
+        </div>
+        <form id="params">
+          <h4 class="">1 - Place (Work, School, etc.):</h4>
+          <div id="search">
+            <input type="text" id="geocoderText" class="search-text" value="" autocomplete="off" autocorrect="off" spellcheck="false" />
+            <p class="search-hint">Search or drag on map.</p>
+            <ul id="searchResults"></ul>
+          </div>
+          <h4 class="">2 - Mode of transport:</h4>
+          <div class="toggle-group">
+            <label class="toggle-container" for="walking">
+              <input type="radio" name="profile" value="walking" id="walking" />
+              <div class="toggle" id="walkingToggle">Walking</div>
+            </label>
+            <label class="toggle-container" for="cycling">
+              <input type="radio" name="profile" value="cycling" id="cycling" />
+              <div class="toggle" id="cyclingToggle">Bike</div>
+            </label>
+            <label class="toggle-container" for="driving">
+              <input type="radio" name="profile" value="driving" id="driving" />
+              <div class="toggle" id="drivingToggle">Car</div>
+            </label>
+          </div>
+          <h4 class="">3 - Maximum duration:</h4>
+          <input type="range" name="duration" id="duration" value=".4" min="0" max="1" step=".01" style="--duration:40%" />
+          <output name="durationText" id="durationText"><b>15</b> minutes</output>
+          <button type="button" id="deleteCommute" class="button-delete">Remove</button>
+        </form>
       </div>
-      <form id="params">
-        <h4 class="">1 - Place (Work, School, etc.):</h4>
-        <div id="search">
-          <input type="text" id="geocoderText" class="search-text" value="" autocomplete="off" autocorrect="off" spellcheck="false">
-          <p class="search-hint">Search or drag on map.</p>
-          <ul id="searchResults"></ul>
-        </div>
-        <h4 class="">2 - Mode of transport:</h4>
-        <div class="toggle-group">
-          <label class="toggle-container" for="walking">
-            <input type="radio" name="profile" value="walking" id="walking">
-            <div class="toggle" id="walkingToggle">Walking</div>
-          </label>
-          <label class="toggle-container" for="cycling">
-            <input type="radio" name="profile" value="cycling" id="cycling">
-            <div class="toggle" id="cyclingToggle">Bike</div>
-          </label>
-          <label class="toggle-container" for="driving">
-            <input type="radio" name="profile" value="driving" id="driving">
-            <div class="toggle" id="drivingToggle">Car</div>
-          </label>
-        </div>
-        <h4 class="">3 - Maximum duration:</h4>
-        <input type="range" name="duration" id="duration" value=".4" min="0" max="1" step=".01" style="--duration:40%">
-        <output name="durationText" id="durationText"><b>15</b> minutes</output>
-        <button type="button" id="deleteCommute" class="button-delete">Remove</button>
-      </form>
     </div>
-  </div>
 
-  <script>
-    // Global vars
-    mapboxgl.accessToken = 'pk.eyJ1IjoicnVpemR1cmF6byIsImEiOiJjazF1dXQyZTMwZDNrM2JuMHhkdXkyOGpwIn0.ljpjN0dfkMMsDLPvUUfhBw'
-    var originLng = 8.54
-    var originLat = 47.375
-    var urlBaseIsochrone = 'https://api.mapbox.com/isochrone/v1/mapbox/'
-    var urlBaseGeocoder = 'https://api.mapbox.com/geocoding/v5/mapbox.places/'
-    var lon = originLng
-    var lat = originLat
-    var profile = 'walking'
-    var minutes = 15
-    var multiple = 1.0
-    var minutes_calc = Math.floor(minutes * multiple)
-    var colorMarker = '#3300ff' // Pendelstrecke marker color
-    var isMarker = false // Is there already a marker on the map?
-    var listings = {} // empty object for listings (geo)json
-    var geocodeResults = [] // empty object for geocode results
-    var iResults = 0 // Counter for geocodes
+    <script>
+      // Global vars
+      mapboxgl.accessToken = 'pk.eyJ1IjoicnVpemR1cmF6byIsImEiOiJjazF1dXQyZTMwZDNrM2JuMHhkdXkyOGpwIn0.ljpjN0dfkMMsDLPvUUfhBw'
+      var originLng = 8.54
+      var originLat = 47.375
+      var urlBaseIsochrone = 'https://api.mapbox.com/isochrone/v1/mapbox/'
+      var urlBaseGeocoder = 'https://api.mapbox.com/geocoding/v5/mapbox.places/'
+      var lon = originLng
+      var lat = originLat
+      var profile = 'walking'
+      var minutes = 15
+      var multiple = 1.0
+      var minutes_calc = Math.floor(minutes * multiple)
+      var colorMarker = '#3300ff' // Commute marker color
+      var isMarker = false // Is there already a marker on the map?
+      var listings = {} // empty object for listings (geo)json
+      var geocodeResults = [] // empty object for geocode results
+      var iResults = 0 // Counter for geocodes
 
-    var legendState = 'max'
-    var title = document.getElementById('title')
-    var searchCriteria = document.getElementById('searchCriteria')
-    title.addEventListener('click', (event) => {
-      if (legendState === 'max') {
-        searchCriteria.style.maxHeight = '0'
-        document.getElementById('plusMinus').innerHTML = '+'
-        legendState = 'min'
-      } else {
-        searchCriteria.style.maxHeight = '600px'
-        document.getElementById('plusMinus').innerHTML = '–'
-        legendState = 'max'
-      }
-    })
+      var legendState = 'max'
+      var title = document.getElementById('title')
+      var searchCriteria = document.getElementById('searchCriteria')
+      title.addEventListener('click', event => {
+        if (legendState === 'max') {
+          searchCriteria.style.maxHeight = '0'
+          document.getElementById('plusMinus').innerHTML = '+'
+          legendState = 'min'
+        } else {
+          searchCriteria.style.maxHeight = '600px'
+          document.getElementById('plusMinus').innerHTML = '–'
+          legendState = 'max'
+        }
+      })
 
-    // Map
-    var map = new mapboxgl.Map({
-      container: 'map', // Specify the container <div> ID
-      style: 'mapbox://styles/mapbox/streets-v11', // Specify which map style to use
-      center: [originLng, originLat], // Specify the starting position
-      zoom: 11.5, // Specify the starting zoom
-      minZoom: 8,
-      maxZoom: 18,
-      maxBounds: [
-        [5.4, 45.4],
-        [11.1, 48.2]
-      ],
-      attributionControl: false
-    })
+      // Map
+      var map = new mapboxgl.Map({
+        container: 'map', // Specify the container <div> ID
+        style: 'mapbox://styles/mapbox/streets-v11', // Specify which map style to use
+        center: [originLng, originLat], // Specify the starting position
+        zoom: 11.5, // Specify the starting zoom
+        minZoom: 8,
+        maxZoom: 18,
+        maxBounds: [
+          [5.4, 45.4],
+          [11.1, 48.2]
+        ],
+        attributionControl: false
+      })
 
-    // Define navigation control
-    var nav = new mapboxgl.NavigationControl()
-    // Add navigation control
-    map.addControl(nav, 'top-right')
+      // Define navigation control
+      var nav = new mapboxgl.NavigationControl()
+      // Add navigation control
+      map.addControl(nav, 'top-right')
 
-    // Define geolocate control
-    var geoControl = new mapboxgl.GeolocateControl({
-      positionOptions: {
-        enableHighAccuracy: true
-      },
-      trackUserLocation: true
-    })
-    // Add geolocate control
-    map.addControl(geoControl, 'top-right')
+      // Define geolocate control
+      var geoControl = new mapboxgl.GeolocateControl({
+        positionOptions: {
+          enableHighAccuracy: true
+        },
+        trackUserLocation: true
+      })
+      // Add geolocate control
+      map.addControl(geoControl, 'top-right')
 
+      // Track center of map every time it moves
+      map.on('moveend', function() {
+        if (isMarker !== true) {
+          let lngLat = map.getCenter()
+          lon = lngLat.lng
+          lat = lngLat.lat
+        }
+      })
 
-    // Track center of map every time it moves
-    map.on('moveend', function () {
-      if (isMarker !== true) {
-        let lngLat = map.getCenter()
+      // Function for setting up the API queries then making ajax calls
+      function getIso() {
+        // Isochrone query string
+        // var queryIsochrone = urlBaseIsochrone + profile + '/' + lon + ',' + lat + '?contours_minutes=' + minutes_calc + '&polygons=true' + '&generalize=50.0' + '&access_token=' + mapboxgl.accessToken
+        var queryIsochrone = urlBaseIsochrone + profile + '/' + lon + ',' + lat + '?contours_minutes=' + minutes_calc + '&polygons=true' + '&access_token=' + mapboxgl.accessToken
+
+        // Reverse geocode query string
+        var queryGeocoder =
+          urlBaseGeocoder +
+          lon +
+          '%2C' +
+          lat +
+          '.json?access_token=' +
+          mapboxgl.accessToken +
+          '&country=ch' +
+          '&types=address%2Cpoi%2Cneighborhood%2Cdistrict%2Cpostcode%2Clocality%2Cplace' +
+          '&proximity=' +
+          lon +
+          '%2C' +
+          lat +
+          '&bbox=5.4%2C%2045.4%2C%2011.1%2C%2048.2' +
+          '&language=de'
+
+        // Send request to isochrone API
+        $.ajax({
+          method: 'GET',
+          url: queryIsochrone
+        }).done(function(data) {
+          // Set the 'iso' source data to the API response as is
+          // map.getSource('iso').setData(data)
+
+          // Define a buffered polygon based on API response
+          let isochrone
+          isochrone = turf.buffer(data, 0.03, { steps: 64 })
+          map.getSource('iso').setData(isochrone)
+
+          // Define a smooth, buffered polygon based on API response (slow, buggy)
+          // let isochrone
+          // isochrone = turf.buffer(turf.lineToPolygon(turf.bezierSpline(turf.lineString(data.features[0].geometry.coordinates[0]), options = { 'resolution': 1000000, 'sharpness': .5 })), .02)
+          // map.getSource('iso').setData(isochrone) // Set the 'iso' source data to the buffered and smoothed polygon
+
+          // Declare arrays to split on
+          let filteredListings = []
+          let unfilteredListings = []
+          // Iterate through the listings
+          listings.features.forEach(listing => {
+            // Use the isochrone polygon to check if listing is inside the polygon
+            if (turf.booleanPointInPolygon(listing.geometry, isochrone.features[0].geometry)) {
+              filteredListings.push(listing)
+            } else {
+              unfilteredListings.push(listing)
+            }
+          })
+          // Update listings data sources
+          map.getSource('listings').setData(turf.featureCollection(unfilteredListings))
+          map.getSource('filtered').setData(turf.featureCollection(filteredListings))
+
+          // Change appearance of listing points
+          map.setPaintProperty('listingsPoint', 'circle-radius', 1)
+          map.setPaintProperty('listingsPoint', 'circle-stroke-width', 1)
+        }) // End of isochrone call
+
+        // Send request to reverse geocode API
+        $.ajax({
+          method: 'GET',
+          url: queryGeocoder
+        }).done(function(data) {
+          geocodeResults = []
+          geocodeResults = data.features
+
+          searchResults.innerHTML = '' // Empty out list of results
+          geocoderText.value = geocodeResults[0].place_name // Set the input text value to the geocoded address
+          iResults = 0
+          geocodeResults.forEach(geocodeResult => {
+            let gcrs = document.createElement('li')
+            gcrs.setAttribute('id', 'search-result' + String(iResults))
+            gcrs.setAttribute('data-lon', geocodeResult.geometry.coordinates[0])
+            gcrs.setAttribute('data-lat', geocodeResult.geometry.coordinates[1])
+            gcrs.innerText = geocodeResult.place_name
+            searchResults.append(gcrs)
+            // Add event listener to search result list item
+            document.getElementById('search-result' + String(iResults)).addEventListener('click', event => {
+              lon = event.srcElement.getAttribute('data-lon')
+              lat = event.srcElement.getAttribute('data-lat')
+              geocoderText.value = event.srcElement.innerText
+              marker.setLngLat([lon, lat]).addTo(map)
+              getIso()
+            })
+            iResults += 1
+          })
+        }) // End of geocode call
+      } // End of getIso()
+
+      // Marker
+      // Define marker
+      var marker = new mapboxgl.Marker({
+        color: colorMarker,
+        draggable: true
+      })
+
+      // Function for hiding isochrone contours when dragging to new location
+      function onDragStart() {
+        map.getSource('iso').setData({
+          type: 'FeatureCollection',
+          features: []
+        })
+        // Change appearance of listing points
+        map.setPaintProperty('listingsPoint', 'circle-radius', 3)
+        map.setPaintProperty('listingsPoint', 'circle-stroke-width', 3)
+      } // End of drag start
+      // Function for updating location and making new API calls and drawing new contours at new location
+      function onDragEnd() {
+        let lngLat = marker.getLngLat()
         lon = lngLat.lng
         lat = lngLat.lat
-      }
-    })
+        getIso()
+      } // End of drag end
+      // Listening for events
+      marker.on('dragstart', onDragStart)
+      marker.on('dragend', onDragEnd)
 
+      // Detect commute
+      var commute = document.getElementById('commute')
+      // Detect adding commute
+      var addCommute = document.getElementById('addCommute')
+      // Detect deleting commute
+      var deleteCommute = document.getElementById('deleteCommute')
 
-    // Function for setting up the API queries then making ajax calls
-    function getIso() {
-      // Isochrone query string
-      // var queryIsochrone = urlBaseIsochrone + profile + '/' + lon + ',' + lat + '?contours_minutes=' + minutes_calc + '&polygons=true' + '&generalize=50.0' + '&access_token=' + mapboxgl.accessToken
-      var queryIsochrone = urlBaseIsochrone + profile + '/' + lon + ',' + lat + '?contours_minutes=' + minutes_calc + '&polygons=true' + '&access_token=' + mapboxgl.accessToken
-
-      // Reverse geocode query string
-      var queryGeocoder = urlBaseGeocoder + lon + '%2C' + lat + '.json?access_token=' + mapboxgl.accessToken + '&country=ch' + '&types=address%2Cpoi%2Cneighborhood%2Cdistrict%2Cpostcode%2Clocality%2Cplace' + '&proximity=' + lon + '%2C' + lat + '&bbox=5.4%2C%2045.4%2C%2011.1%2C%2048.2' + '&language=de'
-
-      // Send request to isochrone API
-      $.ajax({
-        method: 'GET',
-        url: queryIsochrone
-      }).done(function (data) {
-        // Set the 'iso' source data to the API response as is
-        // map.getSource('iso').setData(data)
-
-        // Define a buffered polygon based on API response
-        let isochrone
-        isochrone = turf.buffer(data, .03, { steps: 64 })
-        map.getSource('iso').setData(isochrone)
-
-        // Define a smooth, buffered polygon based on API response (slow, buggy)
-        // let isochrone
-        // isochrone = turf.buffer(turf.lineToPolygon(turf.bezierSpline(turf.lineString(data.features[0].geometry.coordinates[0]), options = { 'resolution': 1000000, 'sharpness': .5 })), .02)
-        // map.getSource('iso').setData(isochrone) // Set the 'iso' source data to the buffered and smoothed polygon
-
-        // Declare arrays to split on
-        let filteredListings = []
-        let unfilteredListings = []
-        // Iterate through the listings
-        listings.features.forEach(listing => {
-          // Use the isochrone polygon to check if listing is inside the polygon
-          if (turf.booleanPointInPolygon(listing.geometry, isochrone.features[0].geometry)) {
-            filteredListings.push(listing)
-          } else {
-            unfilteredListings.push(listing)
-          }
-        })
-        // Update listings data sources
-        map.getSource('listings').setData(turf.featureCollection(unfilteredListings))
-        map.getSource('filtered').setData(turf.featureCollection(filteredListings))
-
-        // Change appearance of listing points
-        map.setPaintProperty('listingsPoint', 'circle-radius', 1)
-        map.setPaintProperty('listingsPoint', 'circle-stroke-width', 1)
-      }) // End of isochrone call
-
-      // Send request to reverse geocode API
-      $.ajax({
-        method: 'GET',
-        url: queryGeocoder
-      }).done(function (data) {
-        geocodeResults = []
-        geocodeResults = data.features
-
-        searchResults.innerHTML = '' // Empty out list of results
-        geocoderText.value = geocodeResults[0].place_name // Set the input text value to the geocoded address
-        iResults = 0
-        geocodeResults.forEach(geocodeResult => {
-          let gcrs = document.createElement('li')
-          gcrs.setAttribute('id', 'search-result' + String(iResults))
-          gcrs.setAttribute('data-lon', geocodeResult.geometry.coordinates[0])
-          gcrs.setAttribute('data-lat', geocodeResult.geometry.coordinates[1])
-          gcrs.innerText = geocodeResult.place_name
-          searchResults.append(gcrs)
-          // Add event listener to search result list item
-          document.getElementById('search-result' + String(iResults)).addEventListener('click', (event) => {
-            lon = event.srcElement.getAttribute('data-lon')
-            lat = event.srcElement.getAttribute('data-lat')
-            geocoderText.value = event.srcElement.innerText
-            marker.setLngLat([lon, lat]).addTo(map)
-            getIso()
-          })
-          iResults += 1
-        })
-
-      }) // End of geocode call
-    } // End of getIso()
-
-
-    // Marker
-    // Define marker
-    var marker = new mapboxgl.Marker({
-      'color': colorMarker,
-      draggable: true
-    })
-
-    // Function for hiding isochrone contours when dragging to new location
-    function onDragStart() {
-      map.getSource('iso').setData({
-        'type': 'FeatureCollection',
-        'features': []
-      })
-      // Change appearance of listing points
-      map.setPaintProperty('listingsPoint', 'circle-radius', 3)
-      map.setPaintProperty('listingsPoint', 'circle-stroke-width', 3)
-    } // End of drag start
-    // Function for updating location and making new API calls and drawing new contours at new location
-    function onDragEnd() {
-      let lngLat = marker.getLngLat()
-      lon = lngLat.lng
-      lat = lngLat.lat
-      getIso()
-    } // End of drag end
-    // Listening for events
-    marker.on('dragstart', onDragStart)
-    marker.on('dragend', onDragEnd)
-
-
-    // Detect commute
-    var commute = document.getElementById('commute')
-    // Detect adding commute
-    var addCommute = document.getElementById('addCommute')
-    // Detect deleting commute
-    var deleteCommute = document.getElementById('deleteCommute')
-
-    map.on('load', function () {
-      d3.json('https://raw.githubusercontent.com/ruizdurazo/map-tests/master/suchkriterien-example.geojson')
-        .then(function (data) {
+      map.on('load', function() {
+        d3.json('https://raw.githubusercontent.com/ruizdurazo/map-tests/master/suchkriterien-example.geojson').then(function(data) {
           listings = data
           // When the map loads, define the data source(s)
           // Gemeinde polygon(s) (Stadt Zuerich)
@@ -615,8 +282,8 @@
           map.addSource('filtered', {
             type: 'geojson',
             data: {
-              'type': 'FeatureCollection',
-              'features': []
+              type: 'FeatureCollection',
+              features: []
             }
           })
 
@@ -624,19 +291,19 @@
           map.addSource('iso', {
             type: 'geojson',
             data: {
-              'type': 'FeatureCollection',
-              'features': []
+              type: 'FeatureCollection',
+              features: []
             }
           })
 
           // Then add the layers
           // Gemeinde outlines (Stadt Zuerich)
           map.addLayer({
-            'id': 'gemeindeLine',
-            'type': 'line',
-            'source': 'gemeinde',
-            'layout': {},
-            'paint': {
+            id: 'gemeindeLine',
+            type: 'line',
+            source: 'gemeinde',
+            layout: {},
+            paint: {
               'line-color': '#ff0000',
               'line-width': 1
             }
@@ -644,231 +311,224 @@
 
           // Listings points
           map.addLayer({
-            'id': 'listingsPoint',
-            'type': 'circle',
-            'source': 'listings',
-            'layout': {},
-            'paint': {
+            id: 'listingsPoint',
+            type: 'circle',
+            source: 'listings',
+            layout: {},
+            paint: {
               'circle-radius': 3,
               'circle-color': '#fff',
               'circle-stroke-width': 3,
-              'circle-stroke-color': [
-                'interpolate',
-                ['linear'],
-                ['get', 'price'],
-                0,
-                'hsl(360, 100%, 80%)',
-                5000000,
-                'hsl(0, 100%, 50%)'
-              ],
+              'circle-stroke-color': ['interpolate', ['linear'], ['get', 'price'], 0, 'hsl(360, 100%, 80%)', 5000000, 'hsl(0, 100%, 50%)']
             }
           })
 
           // Filtered listings points
           map.addLayer({
-            'id': 'filteredPoint',
-            'type': 'circle',
-            'source': 'filtered',
-            'layout': {},
-            'paint': {
+            id: 'filteredPoint',
+            type: 'circle',
+            source: 'filtered',
+            layout: {},
+            paint: {
               'circle-radius': 3,
               'circle-color': '#fff',
               'circle-stroke-width': 3,
-              'circle-stroke-color': [
-                'interpolate',
-                ['linear'],
-                ['get', 'price'],
-                0,
-                'hsl(360, 100%, 80%)',
-                5000000,
-                'hsl(0, 100%, 50%)'
-              ],
+              'circle-stroke-color': ['interpolate', ['linear'], ['get', 'price'], 0, 'hsl(360, 100%, 80%)', 5000000, 'hsl(0, 100%, 50%)']
             }
           })
 
           // Isochrone fill
-          map.addLayer({
-            'id': 'isoFill',
-            'type': 'fill',
-            'source': 'iso', // Use 'iso' as the data source for this layer
-            'layout': {},
-            'paint': {
-              'fill-color': '#5a3fc0', // The fill color for the layer is set to a light purple
-              'fill-opacity': 0.1
-            }
-          }, 'poi-label')
+          map.addLayer(
+            {
+              id: 'isoFill',
+              type: 'fill',
+              source: 'iso', // Use 'iso' as the data source for this layer
+              layout: {},
+              paint: {
+                'fill-color': '#5a3fc0', // The fill color for the layer is set to a light purple
+                'fill-opacity': 0.1
+              }
+            },
+            'poi-label'
+          )
 
           // Isochrone outline
-          map.addLayer({
-            'id': 'isoLine',
-            'type': 'line',
-            'source': 'iso', // Use "iso" as the data source for this layer
-            'layout': {},
-            'paint': {
-              'line-color': '#5a3fc0', // The fill color for the layer is set to a light purple
-              'line-opacity': 1,
-              'line-width': 2
-            }
-          }, 'poi-label')
+          map.addLayer(
+            {
+              id: 'isoLine',
+              type: 'line',
+              source: 'iso', // Use "iso" as the data source for this layer
+              layout: {},
+              paint: {
+                'line-color': '#5a3fc0', // The fill color for the layer is set to a light purple
+                'line-opacity': 1,
+                'line-width': 2
+              }
+            },
+            'poi-label'
+          )
         })
 
-      function initCommute() {
-        isMarker = true
-        commute.innerHTML = '<p>Commute 1</p>'
-        params.style.maxHeight = '500px'
-        marker.setLngLat([lon, lat]).addTo(map)
-        document.getElementById(profile + 'Toggle').setAttribute('class', 'toggle active')
-        getIso()
+        function initCommute() {
+          isMarker = true
+          commute.innerHTML = '<p>Commute 1</p>'
+          params.style.maxHeight = '500px'
+          marker.setLngLat([lon, lat]).addTo(map)
+          document.getElementById(profile + 'Toggle').setAttribute('class', 'toggle active')
+          getIso()
+        }
+
+        // Add commute when clicked
+        addCommute.addEventListener('click', initCommute)
+
+        // Delete commute when clicked
+        deleteCommute.addEventListener('click', function() {
+          isMarker = false
+          params.style.maxHeight = '0' // Collapse menu
+          marker.remove() // Remove marker
+          document.getElementById('geocoderText').value = '' // Empty search field
+          map.getSource('listings').setData(listings) // Reset listings
+          // Update style
+          map.setPaintProperty('listingsPoint', 'circle-radius', 3)
+          map.setPaintProperty('listingsPoint', 'circle-stroke-width', 3)
+          // Empty out 'filtered'
+          map.getSource('filtered').setData({
+            type: 'FeatureCollection',
+            features: []
+          })
+          // Empty out 'iso'
+          map.getSource('iso').setData({
+            type: 'FeatureCollection',
+            features: []
+          })
+          // Prep for next initCommute
+          setTimeout(function() {
+            commute.innerHTML = '<button type="button" id="addCommute" class="button-add">+ Commute</button>'
+            addCommute = document.getElementById('addCommute')
+            addCommute.addEventListener('click', initCommute)
+          }, 300)
+        })
+      }) // End map on load
+
+      // Get duration components: slider and text
+      var duration = document.getElementById('duration')
+      var durationText = document.getElementById('durationText')
+
+      // Function for updating values and styles of 'duration' range slider
+      function updateDuration(value) {
+        duration.style.setProperty('--duration', String(Math.floor(value * 100)) + '%') // Update style for range slider
+        let x = 5
+        let y = 20
+        let z = 60
+        var a = (y - x) ** 2 / (x - 2 * y + z)
+        var b = 2 * Math.log((z - y) / (y - x))
+        let d = Math.floor(a * (Math.exp(b * value) - 1.0) + x)
+        minutes = d // Non linear slider mapped value
+        minutes_calc = Math.floor(minutes * multiple)
+        durationText.innerHTML = '<b>' + d + '</b>' + ' minutes'
       }
-
-      // Add commute when clicked
-      addCommute.addEventListener('click', initCommute)
-
-      // Delete commute when clicked
-      deleteCommute.addEventListener('click', function () {
-        isMarker = false
-        params.style.maxHeight = '0' // Collapse menu
-        marker.remove() // Remove marker
-        document.getElementById('geocoderText').value = '' // Empty search field
-        map.getSource('listings').setData(listings) // Reset listings
-        // Update style
-        map.setPaintProperty('listingsPoint', 'circle-radius', 3)
-        map.setPaintProperty('listingsPoint', 'circle-stroke-width', 3)
-        // Empty out 'filtered'
-        map.getSource('filtered').setData({
-          'type': 'FeatureCollection',
-          'features': []
-        })
-        // Empty out 'iso'
-        map.getSource('iso').setData({
-          'type': 'FeatureCollection',
-          'features': []
-        })
-        // Prep for next initCommute
-        setTimeout(function () {
-          commute.innerHTML = '<button type="button" id="addCommute" class="button-add">+ Commute</button>'
-          addCommute = document.getElementById('addCommute')
-          addCommute.addEventListener('click', initCommute)
-        }, 300)
+      // Run updateDuration when user changes input
+      duration.addEventListener('input', function(event) {
+        updateDuration(event.target.value)
       })
 
-    }) // End map on load
+      // Detect geocoder text input
+      var geocoderText = document.getElementById('geocoderText')
+      // Detect search results ul
+      var searchResults = document.getElementById('searchResults')
 
-
-
-
-    // Get duration components: slider and text
-    var duration = document.getElementById('duration')
-    var durationText = document.getElementById('durationText')
-
-    // Function for updating values and styles of 'duration' range slider
-    function updateDuration(value) {
-      duration.style.setProperty("--duration", String(Math.floor(value * 100)) + '%') // Update style for range slider
-      let x = 5
-      let y = 20
-      let z = 60
-      var a = ((y - x) ** 2) / (x - (2 * y) + z)
-      var b = 2 * Math.log((z - y) / (y - x))
-      let d = Math.floor(a * (Math.exp(b * value) - 1.0) + x)
-      minutes = d // Non linear slider mapped value
-      minutes_calc = Math.floor(minutes * multiple)
-      durationText.innerHTML = '<b>' + d + '</b>' + ' minutes'
-    }
-    // Run updateDuration when user changes input
-    duration.addEventListener('input', function (event) {
-      updateDuration(event.target.value)
-    })
-
-
-
-    // Detect geocoder text input
-    var geocoderText = document.getElementById('geocoderText')
-    // Detect search results ul
-    var searchResults = document.getElementById('searchResults')
-
-
-    // Make a call for new list results
-    geocoderText.addEventListener('input', function (event) {
-      searchResults.innerHTML = '' // Empty out list of results
-      if (String(event.srcElement.value).trim() === '') {
-      } else {
-        // get text to query
-        let queryString = event.srcElement.value
-        queryString.replace(' ', '%2C')
-
-        // Forward geocode query string
-        let queryForward = urlBaseGeocoder + queryString + '.json?limit=5' + '&access_token=' + mapboxgl.accessToken + '&country=ch' + '&types=address%2Cpoi%2Cneighborhood%2Cdistrict%2Cpostcode%2Clocality%2Cplace' + '&proximity=' + lon + '%2C' + lat + '&bbox=5.4%2C%2045.4%2C%2011.1%2C%2048.2' + '&language=de'
-
-        $.ajax({
-          method: 'GET',
-          url: queryForward
-        }).done(function (data) {
-          geocodeResults = data.features
-
-          // iResults = 0
-          geocodeResults.forEach(geocodeResult => {
-            let gcrs = document.createElement('li')
-            gcrs.setAttribute('id', 'search-result' + String(iResults))
-            gcrs.setAttribute('data-lon', geocodeResult.geometry.coordinates[0])
-            gcrs.setAttribute('data-lat', geocodeResult.geometry.coordinates[1])
-            gcrs.innerText = geocodeResult.place_name
-            searchResults.append(gcrs)
-            // Add event listener to search result list item
-            document.getElementById('search-result' + String(iResults)).addEventListener('click', (event) => {
-              lon = event.srcElement.getAttribute('data-lon')
-              lat = event.srcElement.getAttribute('data-lat')
-              geocoderText.value = event.srcElement.innerText
-              marker.setLngLat([lon, lat]).addTo(map)
-              getIso()
-            })
-            iResults += 1
-          })
-
-        })
-      }
-    })
-
-    // Show list of search results on focus
-    geocoderText.addEventListener('focus', () => {
-      searchResults.style.setProperty('max-height', '255px')
-    })
-    // Hide list of search results on blur
-    geocoderText.addEventListener('blur', () => {
-      searchResults.style.setProperty('max-height', '0')
-    })
-
-    // Get the 'params' form
-    var params = document.getElementById('params')
-
-    // When a user changes the value of 'profile' or 'duration' by clicking a button, change the parameter's value and make the API query again
-    params.addEventListener('change', function (event) {
-      if (event.target.name === 'profile') {
-        document.getElementById('walkingToggle').setAttribute('class', 'toggle')
-        document.getElementById('cyclingToggle').setAttribute('class', 'toggle')
-        document.getElementById('drivingToggle').setAttribute('class', 'toggle')
-        if (event.target.value === 'cycling') {
-          multiple = .9
-          profile = event.target.value
-          minutes_calc = Math.floor(minutes * multiple)
-          document.getElementById('cyclingToggle').setAttribute('class', 'toggle active')
-        } else if (event.target.value === 'driving') {
-          multiple = .8
-          profile = event.target.value
-          minutes_calc = Math.floor(minutes * multiple)
-          document.getElementById('drivingToggle').setAttribute('class', 'toggle active')
+      // Make a call for new list results
+      geocoderText.addEventListener('input', function(event) {
+        searchResults.innerHTML = '' // Empty out list of results
+        if (String(event.srcElement.value).trim() === '') {
         } else {
-          multiple = 1.0
-          minutes_calc = Math.floor(minutes * multiple)
-          profile = event.target.value
-          document.getElementById('walkingToggle').setAttribute('class', 'toggle active')
+          // get text to query
+          let queryString = event.srcElement.value
+          queryString.replace(' ', '%2C')
+
+          // Forward geocode query string
+          let queryForward =
+            urlBaseGeocoder +
+            queryString +
+            '.json?limit=5' +
+            '&access_token=' +
+            mapboxgl.accessToken +
+            '&country=ch' +
+            '&types=address%2Cpoi%2Cneighborhood%2Cdistrict%2Cpostcode%2Clocality%2Cplace' +
+            '&proximity=' +
+            lon +
+            '%2C' +
+            lat +
+            '&bbox=5.4%2C%2045.4%2C%2011.1%2C%2048.2' +
+            '&language=de'
+
+          $.ajax({
+            method: 'GET',
+            url: queryForward
+          }).done(function(data) {
+            geocodeResults = data.features
+
+            // iResults = 0
+            geocodeResults.forEach(geocodeResult => {
+              let gcrs = document.createElement('li')
+              gcrs.setAttribute('id', 'search-result' + String(iResults))
+              gcrs.setAttribute('data-lon', geocodeResult.geometry.coordinates[0])
+              gcrs.setAttribute('data-lat', geocodeResult.geometry.coordinates[1])
+              gcrs.innerText = geocodeResult.place_name
+              searchResults.append(gcrs)
+              // Add event listener to search result list item
+              document.getElementById('search-result' + String(iResults)).addEventListener('click', event => {
+                lon = event.srcElement.getAttribute('data-lon')
+                lat = event.srcElement.getAttribute('data-lat')
+                geocoderText.value = event.srcElement.innerText
+                marker.setLngLat([lon, lat]).addTo(map)
+                getIso()
+              })
+              iResults += 1
+            })
+          })
         }
-        getIso()
-      } else if (event.target.name === 'duration') {
-        getIso()
-      }
-    })
+      })
 
-  </script>
-</body>
+      // Show list of search results on focus
+      geocoderText.addEventListener('focus', () => {
+        searchResults.style.setProperty('max-height', '255px')
+      })
+      // Hide list of search results on blur
+      geocoderText.addEventListener('blur', () => {
+        searchResults.style.setProperty('max-height', '0')
+      })
 
+      // Get the 'params' form
+      var params = document.getElementById('params')
+
+      // When a user changes the value of 'profile' or 'duration' by clicking a button, change the parameter's value and make the API query again
+      params.addEventListener('change', function(event) {
+        if (event.target.name === 'profile') {
+          document.getElementById('walkingToggle').setAttribute('class', 'toggle')
+          document.getElementById('cyclingToggle').setAttribute('class', 'toggle')
+          document.getElementById('drivingToggle').setAttribute('class', 'toggle')
+          if (event.target.value === 'cycling') {
+            multiple = 0.9
+            profile = event.target.value
+            minutes_calc = Math.floor(minutes * multiple)
+            document.getElementById('cyclingToggle').setAttribute('class', 'toggle active')
+          } else if (event.target.value === 'driving') {
+            multiple = 0.8
+            profile = event.target.value
+            minutes_calc = Math.floor(minutes * multiple)
+            document.getElementById('drivingToggle').setAttribute('class', 'toggle active')
+          } else {
+            multiple = 1.0
+            minutes_calc = Math.floor(minutes * multiple)
+            profile = event.target.value
+            document.getElementById('walkingToggle').setAttribute('class', 'toggle active')
+          }
+          getIso()
+        } else if (event.target.name === 'duration') {
+          getIso()
+        }
+      })
+    </script>
+  </body>
 </html>
