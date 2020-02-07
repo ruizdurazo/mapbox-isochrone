@@ -1,0 +1,336 @@
+:root {
+  --duration: 40%;
+}
+
+* {
+  font-family: Helvetica, Arial, sans-serif;
+  margin: 0;
+  padding: 0;
+}
+
+#map {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 100%;
+}
+
+/* -------------------- */
+
+.menu {
+  position: absolute;
+  background-color: white;
+  width: 300px;
+  left: 10px;
+  top: 10px;
+  border-radius: 8px;
+  box-shadow: 0 5px 10px rgba(128, 128, 128, 0.5);
+  overflow: hidden;
+}
+
+.menu h1 {
+  font-weight: 700;
+  font-size: 16px;
+  padding: 16px 20px;
+  letter-spacing: 0.01em;
+  color: #202020;
+  transition: all 0.2s;
+}
+
+.menu h1:hover {
+  cursor: pointer;
+  background-color: #fafafa;
+}
+
+.menu span {
+  position: absolute;
+  font-size: 16px;
+  right: 20px;
+  top: 16px;
+}
+
+.menu #searchCriteria {
+  display: block;
+  max-height: 600px;
+  overflow: scroll;
+  -ms-overflow-style: none;
+  overflow: -moz-scrollbars-none;
+  scrollbar-width: none;
+  transition: max-height 0.2s;
+}
+
+.menu #searchCriteria::-webkit-scrollbar {
+  width: 0 !important;
+  height: 0 !important;
+}
+
+.menu hr {
+  height: 1px;
+  background-color: #ddd;
+  margin: 0;
+  border: none;
+}
+
+/* Title for commute once created */
+.menu #commute p {
+  padding: 16px 20px 16px 20px;
+  text-align: left;
+  font-size: 16px;
+  font-weight: 400;
+  color: #666666;
+}
+
+/* Add commute button */
+.menu .button-add {
+  text-decoration: none;
+  background: none;
+  border: none;
+  width: 100%;
+  padding: 16px 20px;
+  text-align: left;
+  font-size: 16px;
+  font-weight: 400;
+  color: #808080;
+  transition: all 0.3s ease;
+}
+
+.menu .button-add:hover,
+.menu .button-add:focus,
+.menu .button-add:active {
+  outline: none;
+  color: #202020;
+  background-color: #fafafa;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.menu h4 {
+  margin: 0 20px 4px 20px;
+  font-size: 16px;
+  letter-spacing: 0.01em;
+}
+
+/* Search */
+.menu #search {
+  position: relative;
+}
+
+.menu .search-text {
+  font-size: 16px;
+  width: 260px;
+  color: #666666;
+  letter-spacing: 0.01em;
+  margin: 10px 20px 8px 20px;
+  outline: none;
+  border: none;
+  padding: 0 0 4px 0;
+  -webkit-appearance: none;
+  border-radius: 0;
+  border-bottom: 2px solid red;
+}
+
+.menu .search-text:hover,
+.menu .search-text:active,
+.menu .search-text:focus {
+  color: #202020;
+  outline: none;
+  border-bottom: 3px solid red;
+  margin: 10px 20px 7px 20px;
+}
+
+.menu .search-hint {
+  color: #aaaaaa;
+  font-size: 15px;
+  margin: 0 20px 28px 20px;
+}
+
+.menu #searchResults {
+  z-index: 100;
+  background-color: white;
+  list-style: none;
+  position: absolute;
+  top: 40px;
+  left: 20px;
+  overflow: hidden;
+  max-width: 260px;
+  max-height: 0;
+  transition: max-height 0.2s;
+}
+
+#searchResults li {
+  border-bottom: 1px solid #ccc;
+  font-size: 16px;
+  padding: 16px 4px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  overflow: hidden;
+  transition: all 0.2s;
+}
+
+#searchResults li:hover {
+  cursor: pointer;
+  background-color: #fafafa;
+}
+
+/* Range slider */
+.menu input[type='range'] {
+  -webkit-appearance: none;
+  width: 145px;
+  margin: 12px 8px 12px 20px;
+  background-color: transparent;
+  outline: none;
+}
+
+.menu input[type='range']::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 4px solid red;
+  background: white;
+  cursor: pointer;
+  outline: none;
+}
+
+.menu input[type='range']::-webkit-slider-runnable-track {
+  -webkit-appearance: none;
+  color: transparent;
+  border-color: transparent;
+  background-color: transparent;
+  background-image: -webkit-gradient(linear, left top, right top, from(red), to(#eee));
+  background-image: linear-gradient(90deg, red var(--duration), #eee var(--duration));
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: 100% 4px;
+  cursor: pointer;
+}
+
+.menu input[type='range']::-moz-range-thumb {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  border: 4px solid red;
+  background: white;
+  cursor: pointer;
+  outline: none;
+  -webkit-appearance: none;
+}
+
+.menu input[type='range']::-moz-range-thumb:focus,
+.menu input[type='range']::-moz-range-thumb:hover,
+.menu input[type='range']::-moz-range-thumb:active {
+  outline: none;
+}
+
+.menu input[type='range']::-moz-range-track {
+  -webkit-appearance: none;
+  color: transparent;
+  border-color: transparent;
+  background-color: transparent;
+  background-image: linear-gradient(90deg, red var(--duration), #eee var(--duration));
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: 100% 4px;
+  cursor: pointer;
+}
+
+.menu input[type='range']::-moz-range-track:focus,
+.menu input[type='range']::-moz-range-track:hover,
+.menu input[type='range']::-moz-range-track:active {
+  outline: none;
+}
+
+.menu input[type='range']::-ms-track {
+  -webkit-appearance: none;
+  color: transparent;
+  border-color: transparent;
+  background-color: transparent;
+  background-image: linear-gradient(90deg, red var(--duration), #eee var(--duration));
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: 100% 4px;
+  cursor: pointer;
+}
+
+.menu input[type='range']::-ms-track:focus,
+.menu input[type='range']::-ms-track:hover,
+.menu input[type='range']::-ms-track:active {
+  outline: none;
+}
+
+.menu #durationText {
+  color: #808080;
+  margin: 10px 8px;
+  position: absolute;
+}
+
+.menu b {
+  color: black;
+}
+
+.menu .toggle-group {
+  margin: 12px 20px 28px 20px;
+}
+
+.menu .toggle-container {
+  display: inline-block;
+}
+
+.menu input[type='radio'] {
+  display: none;
+}
+
+.menu .toggle {
+  background-color: transparent;
+  color: #808080;
+  font-size: 14px;
+  border-radius: 16px;
+  padding: 8px 16px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  margin: 0 4px 0 0;
+  transition: all 0.2s;
+}
+
+.menu .toggle:hover {
+  cursor: pointer;
+  color: red;
+  background-color: rgba(255, 0, 0, 0.1);
+}
+
+.menu .active {
+  background-color: red;
+  color: white;
+}
+
+.menu .active:hover {
+  background-color: red;
+  color: white;
+}
+
+#params {
+  transition: all 0.3s ease-in;
+  max-height: 0;
+  overflow: hidden;
+}
+
+.menu .button-delete {
+  display: block;
+  margin: 20px auto 24px auto;
+  font-size: 16px;
+  border: none;
+  color: red;
+  transition: all 0.3s ease;
+  background: none;
+}
+
+.menu .button-delete:hover {
+  color: rgba(255, 0, 0, 0.8);
+  cursor: pointer;
+}
+
+/* -------------------- */
+
+.mapboxgl-ctrl-logo {
+  display: none !important;
+}
