@@ -120,13 +120,14 @@
   width: 260px;
   color: #666666;
   letter-spacing: 0.01em;
-  margin: 10px 20px 8px 20px;
+  margin: 10px 20px 9px 20px;
   outline: none;
   border: none;
   padding: 0 0 4px 0;
   -webkit-appearance: none;
   border-radius: 0;
-  border-bottom: 2px solid red;
+  border-bottom: 1px solid red;
+  transition: color .3s ease, border .2s ease, margin .3s ease;
 }
 
 .menu .search-text:hover,
@@ -155,12 +156,13 @@
   max-width: 260px;
   max-height: 0;
   transition: max-height 0.2s;
+  box-shadow: 0px 8px 16px #ccc;
 }
 
 #searchResults li {
   border-bottom: 1px solid #ccc;
   font-size: 16px;
-  padding: 16px 4px;
+  padding: 16px 8px;
   text-overflow: ellipsis;
   white-space: nowrap;
   overflow: hidden;
@@ -169,7 +171,7 @@
 
 #searchResults li:hover {
   cursor: pointer;
-  background-color: #fafafa;
+  background-color: #f8f8f8;
 }
 
 /* Range slider */

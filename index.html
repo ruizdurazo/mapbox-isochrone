@@ -16,6 +16,8 @@
     <!-- Import D3 fetch -->
     <script src="https://d3js.org/d3-fetch.v1.min.js"></script>
     <!-- Styles -->
+    <link rel="stylesheet" href="/styles.css" />
+    <!-- <link rel="stylesheet" href="./styles.css" /> -->
     <link rel="stylesheet" href="/mapbox-isochrone/styles.css" />
   </head>
 
@@ -32,31 +34,18 @@
           <button type="button" id="addCommute" class="button-add">+ Commute</button>
         </div>
         <form id="params">
-          <h4 class="">1 - Place (Work, School, etc.):</h4>
+          <h4 class="">1 - Location:</h4>
           <div id="search">
             <input type="text" id="geocoderText" class="search-text" value="" autocomplete="off" autocorrect="off" spellcheck="false" />
             <p class="search-hint">Search or drag on map.</p>
             <ul id="searchResults"></ul>
           </div>
-          <h4 class="">2 - Mode of transport:</h4>
-          <div class="toggle-group">
-            <label class="toggle-container" for="walking">
-              <input type="radio" name="profile" value="walking" id="walking" />
-              <div class="toggle" id="walkingToggle">Walking</div>
-            </label>
-            <label class="toggle-container" for="cycling">
-              <input type="radio" name="profile" value="cycling" id="cycling" />
-              <div class="toggle" id="cyclingToggle">Bike</div>
-            </label>
-            <label class="toggle-container" for="driving">
-              <input type="radio" name="profile" value="driving" id="driving" />
-              <div class="toggle" id="drivingToggle">Car</div>
-            </label>
-          </div>
-          <h4 class="">3 - Maximum duration:</h4>
-          <input type="range" name="duration" id="duration" value=".4" min="0" max="1" step=".01" style="--duration:40%" />
-          <output name="durationText" id="durationText"><b>15</b> minutes</output>
+          <h4 class="">2 - Driving time:</h4>
+          <input type="range" name="duration" id="duration" value=".5" min="0" max="1" step=".01" style="--duration: 50%;" />
+          <output name="durationText" id="durationText"><b>45</b> minutes</output>
           <button type="button" id="deleteCommute" class="button-delete">Remove</button>
+          <!-- <textarea name="plzs" id="plzs" cols="30" rows="5"></textarea> -->
+          <input type="text" id="plzs" />
         </form>
       </div>
     </div>
@@ -70,20 +59,23 @@
       var urlBaseGeocoder = 'https://api.mapbox.com/geocoding/v5/mapbox.places/'
       var lon = originLng
       var lat = originLat
-      var profile = 'walking'
-      var minutes = 15
+      var profile = 'driving'
+      var minutes = 45
       var multiple = 1.0
       var minutes_calc = Math.floor(minutes * multiple)
       var colorMarker = '#3300ff' // Commute marker color
       var isMarker = false // Is there already a marker on the map?
-      var listings = {} // empty object for listings (geo)json
+      var postcodes = {} // empty object for postcodes (geo)json
+      var postcodesPoints = [] // empty array for postcodes
       var geocodeResults = [] // empty object for geocode results
       var iResults = 0 // Counter for geocodes
+      // Declare arrays to split on
+      let filteredPostcodes = []
 
       var legendState = 'max'
       var title = document.getElementById('title')
       var searchCriteria = document.getElementById('searchCriteria')
-      title.addEventListener('click', event => {
+      title.addEventListener('click', (event) => {
         if (legendState === 'max') {
           searchCriteria.style.maxHeight = '0'
           document.getElementById('plusMinus').innerHTML = '+'
@@ -100,14 +92,14 @@
         container: 'map', // Specify the container <div> ID
         style: 'mapbox://styles/mapbox/streets-v11', // Specify which map style to use
         center: [originLng, originLat], // Specify the starting position
-        zoom: 11.5, // Specify the starting zoom
+        zoom: 9.5, // Specify the starting zoom
         minZoom: 8,
         maxZoom: 18,
         maxBounds: [
           [5.4, 45.4],
-          [11.1, 48.2]
+          [11.1, 48.2],
         ],
-        attributionControl: false
+        attributionControl: false,
       })
 
       // Define navigation control
@@ -118,15 +110,15 @@
       // Define geolocate control
       var geoControl = new mapboxgl.GeolocateControl({
         positionOptions: {
-          enableHighAccuracy: true
+          enableHighAccuracy: true,
         },
-        trackUserLocation: true
+        trackUserLocation: true,
       })
       // Add geolocate control
       map.addControl(geoControl, 'top-right')
 
       // Track center of map every time it moves
-      map.on('moveend', function() {
+      map.on('moveend', function () {
         if (isMarker !== true) {
           let lngLat = map.getCenter()
           lon = lngLat.lng
@@ -138,7 +130,8 @@
       function getIso() {
         // Isochrone query string
         // var queryIsochrone = urlBaseIsochrone + profile + '/' + lon + ',' + lat + '?contours_minutes=' + minutes_calc + '&polygons=true' + '&generalize=50.0' + '&access_token=' + mapboxgl.accessToken
-        var queryIsochrone = urlBaseIsochrone + profile + '/' + lon + ',' + lat + '?contours_minutes=' + minutes_calc + '&polygons=true' + '&access_token=' + mapboxgl.accessToken
+        var queryIsochrone = urlBaseIsochrone + profile + '/' + lon + ',' + lat + '?contours_minutes=' + minutes_calc + '&polygons=true' + '&generalize=400.0' + '&access_token=' + mapboxgl.accessToken
+        // var queryIsochrone = urlBaseIsochrone + profile + '/' + lon + ',' + lat + '?contours_minutes=' + minutes_calc + '&polygons=true' + '&access_token=' + mapboxgl.accessToken
 
         // Reverse geocode query string
         var queryGeocoder =
@@ -146,10 +139,12 @@
           lon +
           '%2C' +
           lat +
-          '.json?access_token=' +
+          '.json?limit=3' +
+          '&access_token=' +
           mapboxgl.accessToken +
           '&country=ch' +
-          '&types=address%2Cpoi%2Cneighborhood%2Cdistrict%2Cpostcode%2Clocality%2Cplace' +
+          // '&types=address%2Cpoi%2Cneighborhood%2Cdistrict%2Cpostcode%2Clocality%2Cplace' +
+          '&types=address' +
           '&proximity=' +
           lon +
           '%2C' +
@@ -160,8 +155,8 @@
         // Send request to isochrone API
         $.ajax({
           method: 'GET',
-          url: queryIsochrone
-        }).done(function(data) {
+          url: queryIsochrone,
+        }).done(function (data) {
           // Set the 'iso' source data to the API response as is
           // map.getSource('iso').setData(data)
 
@@ -170,44 +165,41 @@
           isochrone = turf.buffer(data, 0.03, { steps: 64 })
           map.getSource('iso').setData(isochrone)
 
-          // Define a smooth, buffered polygon based on API response (slow, buggy)
-          // let isochrone
-          // isochrone = turf.buffer(turf.lineToPolygon(turf.bezierSpline(turf.lineString(data.features[0].geometry.coordinates[0]), options = { 'resolution': 1000000, 'sharpness': .5 })), .02)
-          // map.getSource('iso').setData(isochrone) // Set the 'iso' source data to the buffered and smoothed polygon
+          // ---
 
-          // Declare arrays to split on
-          let filteredListings = []
-          let unfilteredListings = []
-          // Iterate through the listings
-          listings.features.forEach(listing => {
-            // Use the isochrone polygon to check if listing is inside the polygon
-            if (turf.booleanPointInPolygon(listing.geometry, isochrone.features[0].geometry)) {
-              filteredListings.push(listing)
-            } else {
-              unfilteredListings.push(listing)
+          // Iterate through the postcodes
+          // console.log(postcodes)
+          filteredPostcodes = []
+          for (let index = 0; index < postcodes.features.length; index++) {
+            const postcode = postcodes.features[index]
+
+            // Use the isochrone polygon to check if postcode-centroid is inside the polygon
+            if (turf.booleanPointInPolygon(postcode.geometry, isochrone.features[0].geometry)) {
+              filteredPostcodes.push(postcode.properties.PLZ)
             }
-          })
-          // Update listings data sources
-          map.getSource('listings').setData(turf.featureCollection(unfilteredListings))
-          map.getSource('filtered').setData(turf.featureCollection(filteredListings))
+          }
+          console.log(filteredPostcodes)
+          document.getElementById('plzs').value = filteredPostcodes
+          // ----
 
-          // Change appearance of listing points
-          map.setPaintProperty('listingsPoint', 'circle-radius', 1)
-          map.setPaintProperty('listingsPoint', 'circle-stroke-width', 1)
+          // Change appearance of postcode fills
+          // map.setPaintProperty('postcodesFill', 'fill-color', ['match', ['get', 'PLZ'], [...new Set(filteredPostcodes)], 'hsl(0, 0%, 0%)', 'hsla(0, 0%, 0%, 0.14)'])
+          map.setPaintProperty('postcodesFill', 'fill-color', ['match', ['get', 'PLZ'], filteredPostcodes, 'hsl(0, 0%, 0%)', 'hsla(0, 0%, 0%, 0.14)'])
+          // map.setPaintProperty('postcodesFill', 'line-width', ['match', ['get', 'PLZ'], filteredPostcodes, 'hsl(0, 0%, 0%)', 'hsla(0, 0%, 0%, 0.14)'])
         }) // End of isochrone call
 
         // Send request to reverse geocode API
         $.ajax({
           method: 'GET',
-          url: queryGeocoder
-        }).done(function(data) {
+          url: queryGeocoder,
+        }).done(function (data) {
           geocodeResults = []
           geocodeResults = data.features
 
           searchResults.innerHTML = '' // Empty out list of results
           geocoderText.value = geocodeResults[0].place_name // Set the input text value to the geocoded address
           iResults = 0
-          geocodeResults.forEach(geocodeResult => {
+          geocodeResults.forEach((geocodeResult) => {
             let gcrs = document.createElement('li')
             gcrs.setAttribute('id', 'search-result' + String(iResults))
             gcrs.setAttribute('data-lon', geocodeResult.geometry.coordinates[0])
@@ -215,7 +207,7 @@
             gcrs.innerText = geocodeResult.place_name
             searchResults.append(gcrs)
             // Add event listener to search result list item
-            document.getElementById('search-result' + String(iResults)).addEventListener('click', event => {
+            document.getElementById('search-result' + String(iResults)).addEventListener('click', (event) => {
               lon = event.srcElement.getAttribute('data-lon')
               lat = event.srcElement.getAttribute('data-lat')
               geocoderText.value = event.srcElement.innerText
@@ -231,19 +223,20 @@
       // Define marker
       var marker = new mapboxgl.Marker({
         color: colorMarker,
-        draggable: true
+        draggable: true,
       })
 
       // Function for hiding isochrone contours when dragging to new location
       function onDragStart() {
         map.getSource('iso').setData({
           type: 'FeatureCollection',
-          features: []
+          features: [],
         })
-        // Change appearance of listing points
-        map.setPaintProperty('listingsPoint', 'circle-radius', 3)
-        map.setPaintProperty('listingsPoint', 'circle-stroke-width', 3)
+
+        // Change appearance of postcode fills
+        map.setPaintProperty('postcodesFill', 'fill-color', 'hsla(0, 0%, 0%, 0.14)')
       } // End of drag start
+
       // Function for updating location and making new API calls and drawing new contours at new location
       function onDragEnd() {
         let lngLat = marker.getLngLat()
@@ -251,6 +244,7 @@
         lat = lngLat.lat
         getIso()
       } // End of drag end
+
       // Listening for events
       marker.on('dragstart', onDragStart)
       marker.on('dragend', onDragEnd)
@@ -262,79 +256,100 @@
       // Detect deleting commute
       var deleteCommute = document.getElementById('deleteCommute')
 
-      map.on('load', function() {
-        d3.json('https://raw.githubusercontent.com/ruizdurazo/map-tests/master/suchkriterien-example.geojson').then(function(data) {
-          listings = data
+      map.on('load', function () {
+        d3.json('https://raw.githubusercontent.com/ruizdurazo/map-tests/master/PLZO_PLZ_unique_centroids.geojson').then(function (data) {
+          // set postcodes data
+          postcodes = data
+
+          // -----------------------------------------
           // When the map loads, define the data source(s)
-          // Gemeinde polygon(s) (Stadt Zuerich)
-          map.addSource('gemeinde', {
+
+          // postcodes points
+          map.addSource('postcodes-centroids', {
             type: 'geojson',
-            data: 'https://raw.githubusercontent.com/ruizdurazo/map-tests/master/stadt-zuerich.geojson'
+            data: postcodes,
           })
 
-          // Listings points
-          map.addSource('listings', {
-            type: 'geojson',
-            data: listings
+          // postcode polys
+          map.addSource('postcodes', {
+            type: 'vector',
+            url: 'mapbox://ruizdurazo.dbqw5vp9',
           })
 
-          // Filtered listings placeholder
-          map.addSource('filtered', {
-            type: 'geojson',
-            data: {
-              type: 'FeatureCollection',
-              features: []
-            }
-          })
+          // Filtered postcodes placeholder
+          // map.addSource('filtered', {
+          //   type: 'geojson',
+          //   data: {
+          //     type: 'FeatureCollection',
+          //     features: [],
+          //   },
+          // })
 
           // Isochrone placeholder
           map.addSource('iso', {
             type: 'geojson',
             data: {
               type: 'FeatureCollection',
-              features: []
-            }
+              features: [],
+            },
           })
 
+          // -----------------------------------------
           // Then add the layers
-          // Gemeinde outlines (Stadt Zuerich)
+
+          // Postcode centroids
           map.addLayer({
-            id: 'gemeindeLine',
+            id: 'postcodesPoints',
+            type: 'circle',
+            source: 'postcodes-centroids',
+            layout: {},
+            paint: {
+              'circle-radius': 2,
+              'circle-color': '#fff',
+              'circle-stroke-color': '#c00',
+              'circle-stroke-width': 1,
+            },
+          })
+
+          // Postcode numbers as text
+          map.addLayer({
+            id: 'postcodesText',
+            type: 'symbol',
+            source: 'postcodes-centroids',
+            layout: {
+              'text-field': ['to-string', ['get', 'PLZ']],
+              'text-size': 12,
+              'text-offset': [0, -1]
+            },
+            paint: {
+              'text-color': '#c00'
+            },
+          })
+
+          // Postcode fills
+          map.addLayer({
+            id: 'postcodesFill',
+            type: 'fill',
+            source: 'postcodes',
+            'source-layer': 'PLZO_PLZ_unique',
+            layout: {},
+            paint: {
+              'fill-color': 'hsla(0, 0%, 0%, 0.14)',
+              'fill-opacity': 0.1,
+            },
+          })
+
+          // Postcode outlines
+          map.addLayer({
+            id: 'postcodesLine',
             type: 'line',
-            source: 'gemeinde',
+            source: 'postcodes',
+            'source-layer': 'PLZO_PLZ_unique',
             layout: {},
             paint: {
               'line-color': '#ff0000',
-              'line-width': 1
-            }
-          })
-
-          // Listings points
-          map.addLayer({
-            id: 'listingsPoint',
-            type: 'circle',
-            source: 'listings',
-            layout: {},
-            paint: {
-              'circle-radius': 3,
-              'circle-color': '#fff',
-              'circle-stroke-width': 3,
-              'circle-stroke-color': ['interpolate', ['linear'], ['get', 'price'], 0, 'hsl(360, 100%, 80%)', 5000000, 'hsl(0, 100%, 50%)']
-            }
-          })
-
-          // Filtered listings points
-          map.addLayer({
-            id: 'filteredPoint',
-            type: 'circle',
-            source: 'filtered',
-            layout: {},
-            paint: {
-              'circle-radius': 3,
-              'circle-color': '#fff',
-              'circle-stroke-width': 3,
-              'circle-stroke-color': ['interpolate', ['linear'], ['get', 'price'], 0, 'hsl(360, 100%, 80%)', 5000000, 'hsl(0, 100%, 50%)']
-            }
+              'line-width': 0.1,
+            },
           })
 
           // Isochrone fill
@@ -346,8 +361,8 @@
               layout: {},
               paint: {
                 'fill-color': '#5a3fc0', // The fill color for the layer is set to a light purple
-                'fill-opacity': 0.1
-              }
+                'fill-opacity': 0.05,
+              },
             },
             'poi-label'
           )
@@ -362,8 +377,8 @@
               paint: {
                 'line-color': '#5a3fc0', // The fill color for the layer is set to a light purple
                 'line-opacity': 1,
-                'line-width': 2
-              }
+                'line-width': 2,
+              },
             },
             'poi-label'
           )
@@ -374,7 +389,6 @@
           commute.innerHTML = '<p>Commute 1</p>'
           params.style.maxHeight = '500px'
           marker.setLngLat([lon, lat]).addTo(map)
-          document.getElementById(profile + 'Toggle').setAttribute('class', 'toggle active')
           getIso()
         }
 
@@ -382,27 +396,23 @@
         addCommute.addEventListener('click', initCommute)
 
         // Delete commute when clicked
-        deleteCommute.addEventListener('click', function() {
+        deleteCommute.addEventListener('click', function () {
           isMarker = false
           params.style.maxHeight = '0' // Collapse menu
           marker.remove() // Remove marker
           document.getElementById('geocoderText').value = '' // Empty search field
-          map.getSource('listings').setData(listings) // Reset listings
-          // Update style
-          map.setPaintProperty('listingsPoint', 'circle-radius', 3)
-          map.setPaintProperty('listingsPoint', 'circle-stroke-width', 3)
-          // Empty out 'filtered'
-          map.getSource('filtered').setData({
-            type: 'FeatureCollection',
-            features: []
-          })
-          // Empty out 'iso'
+
+          // Update postcode polygons' style
+          map.setPaintProperty('postcodesFill', 'fill-color', 'hsla(0, 0%, 0%, 0.14)')
+
+          // Empty out isochrone source
           map.getSource('iso').setData({
             type: 'FeatureCollection',
-            features: []
+            features: [],
           })
+
           // Prep for next initCommute
-          setTimeout(function() {
+          setTimeout(function () {
             commute.innerHTML = '<button type="button" id="addCommute" class="button-add">+ Commute</button>'
             addCommute = document.getElementById('addCommute')
             addCommute.addEventListener('click', initCommute)
@@ -417,8 +427,8 @@
       // Function for updating values and styles of 'duration' range slider
       function updateDuration(value) {
         duration.style.setProperty('--duration', String(Math.floor(value * 100)) + '%') // Update style for range slider
-        let x = 5
-        let y = 20
+        let x = 15
+        let y = 45
         let z = 60
         var a = (y - x) ** 2 / (x - 2 * y + z)
         var b = 2 * Math.log((z - y) / (y - x))
@@ -427,18 +437,20 @@
         minutes_calc = Math.floor(minutes * multiple)
         durationText.innerHTML = '<b>' + d + '</b>' + ' minutes'
       }
+
       // Run updateDuration when user changes input
-      duration.addEventListener('input', function(event) {
+      duration.addEventListener('input', function (event) {
         updateDuration(event.target.value)
       })
 
       // Detect geocoder text input
       var geocoderText = document.getElementById('geocoderText')
+
       // Detect search results ul
       var searchResults = document.getElementById('searchResults')
 
       // Make a call for new list results
-      geocoderText.addEventListener('input', function(event) {
+      geocoderText.addEventListener('input', function (event) {
         searchResults.innerHTML = '' // Empty out list of results
         if (String(event.srcElement.value).trim() === '') {
         } else {
@@ -450,11 +462,12 @@
           let queryForward =
             urlBaseGeocoder +
             queryString +
-            '.json?limit=5' +
+            '.json?limit=3' +
             '&access_token=' +
             mapboxgl.accessToken +
             '&country=ch' +
-            '&types=address%2Cpoi%2Cneighborhood%2Cdistrict%2Cpostcode%2Clocality%2Cplace' +
+            // '&types=address%2Cpoi%2Cneighborhood%2Cdistrict%2Cpostcode%2Clocality%2Cplace' +
+            '&types=address' +
             '&proximity=' +
             lon +
             '%2C' +
@@ -464,12 +477,12 @@
 
           $.ajax({
             method: 'GET',
-            url: queryForward
-          }).done(function(data) {
+            url: queryForward,
+          }).done(function (data) {
             geocodeResults = data.features
 
             // iResults = 0
-            geocodeResults.forEach(geocodeResult => {
+            geocodeResults.forEach((geocodeResult) => {
               let gcrs = document.createElement('li')
               gcrs.setAttribute('id', 'search-result' + String(iResults))
               gcrs.setAttribute('data-lon', geocodeResult.geometry.coordinates[0])
@@ -477,7 +490,7 @@
               gcrs.innerText = geocodeResult.place_name
               searchResults.append(gcrs)
               // Add event listener to search result list item
-              document.getElementById('search-result' + String(iResults)).addEventListener('click', event => {
+              document.getElementById('search-result' + String(iResults)).addEventListener('click', (event) => {
                 lon = event.srcElement.getAttribute('data-lon')
                 lat = event.srcElement.getAttribute('data-lat')
                 geocoderText.value = event.srcElement.innerText
@@ -494,6 +507,7 @@
       geocoderText.addEventListener('focus', () => {
         searchResults.style.setProperty('max-height', '255px')
       })
+
       // Hide list of search results on blur
       geocoderText.addEventListener('blur', () => {
         searchResults.style.setProperty('max-height', '0')
@@ -502,30 +516,13 @@
       // Get the 'params' form
       var params = document.getElementById('params')
 
-      // When a user changes the value of 'profile' or 'duration' by clicking a button, change the parameter's value and make the API query again
-      params.addEventListener('change', function(event) {
-        if (event.target.name === 'profile') {
-          document.getElementById('walkingToggle').setAttribute('class', 'toggle')
-          document.getElementById('cyclingToggle').setAttribute('class', 'toggle')
-          document.getElementById('drivingToggle').setAttribute('class', 'toggle')
-          if (event.target.value === 'cycling') {
-            multiple = 0.9
-            profile = event.target.value
-            minutes_calc = Math.floor(minutes * multiple)
-            document.getElementById('cyclingToggle').setAttribute('class', 'toggle active')
-          } else if (event.target.value === 'driving') {
-            multiple = 0.8
-            profile = event.target.value
-            minutes_calc = Math.floor(minutes * multiple)
-            document.getElementById('drivingToggle').setAttribute('class', 'toggle active')
-          } else {
-            multiple = 1.0
-            minutes_calc = Math.floor(minutes * multiple)
-            profile = event.target.value
-            document.getElementById('walkingToggle').setAttribute('class', 'toggle active')
-          }
-          getIso()
-        } else if (event.target.name === 'duration') {
+      // When a user changes the value of 'duration', change the parameter's value and make the API query again
+      params.addEventListener('change', function (event) {
+        if (event.target.name === 'duration') {
+          // Reset postcode polygons' style
+          map.setPaintProperty('postcodesFill', 'fill-color', 'hsla(0, 0%, 0%, 0.14)')
+
+          // get iso
           getIso()
         }
       })
